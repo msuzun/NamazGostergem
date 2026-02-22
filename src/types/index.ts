@@ -1,4 +1,4 @@
-export type PrayerName =
+﻿export type PrayerName =
   | 'Sabah'
   | 'Öğle'
   | 'İkindi'
