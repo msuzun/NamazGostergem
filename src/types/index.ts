@@ -38,6 +38,7 @@ export interface SessionState {
 
 export type RootStackParamList = {
   Home: undefined;
+  SessionSetup: undefined;
   Session: undefined;
   Settings: undefined;
   Debug: undefined;

@@ -17,7 +17,6 @@ const PRAYER_ORDER: PrayerType[] = [
 ];
 
 export default function HomeScreen({ navigation }: Props) {
-  const selectedPrayer = usePrayerStore((state) => state.selectedPrayer);
   const selectPrayer = usePrayerStore((state) => state.selectPrayer);
 
   const prayers = PRAYER_ORDER.map((prayer) => getDefaultConfig(prayer));
@@ -32,74 +31,50 @@ export default function HomeScreen({ navigation }: Props) {
     });
   }, [navigation]);
 
+  const onPrayerPress = (prayer: PrayerType) => {
+    selectPrayer(prayer);
+    navigation.navigate('SessionSetup');
+  };
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.title}>NamazGostergem</Text>
-      <Text style={styles.subtitle}>Select a prayer (domain model wired)</Text>
+      <Text style={styles.subtitle}>Namaz seç</Text>
 
-      <View style={styles.list}>
-        {prayers.map((prayer) => {
-          const isSelected = prayer.id === selectedPrayer;
-          return (
-            <Pressable
-              key={prayer.id}
-              onPress={() => selectPrayer(prayer.id)}
-              style={[styles.card, isSelected && styles.cardSelected]}
-            >
-              <Text style={styles.cardTitle}>{prayer.name}</Text>
-              <Text style={styles.cardMeta}>Varsayılan Rakat: {prayer.defaultRakats}</Text>
-              <Text style={styles.cardMeta}>Preset: {prayer.patternPreset}</Text>
-              <Text style={styles.cardMeta}>Pattern: [{prayer.defaultPattern.join(', ')}]</Text>
-            </Pressable>
-          );
-        })}
-      </View>
-
-      <View style={styles.actions}>
-        <Pressable style={styles.secondaryButton} onPress={() => navigation.navigate('Settings')}>
-          <Text style={styles.secondaryButtonText}>Settings</Text>
-        </Pressable>
-        <Pressable style={styles.primaryButton} onPress={() => navigation.navigate('Session')}>
-          <Text style={styles.primaryButtonText}>Open Session</Text>
-        </Pressable>
+      <View style={styles.grid}>
+        {prayers.map((prayer) => (
+          <Pressable
+            key={prayer.id}
+            onPress={() => onPrayerPress(prayer.id)}
+            style={styles.card}
+          >
+            <Text style={styles.cardTitle}>{prayer.name}</Text>
+            <Text style={styles.cardMeta}>{prayer.defaultRakats} Rekat</Text>
+          </Pressable>
+        ))}
       </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
-  content: { padding: 16, gap: 16 },
-  title: { fontSize: 28, fontWeight: '700', color: '#0f172a' },
-  subtitle: { fontSize: 14, color: '#64748b' },
-  headerDebugText: { color: '#0ea5e9', fontWeight: '700', fontSize: 13 },
-  list: { gap: 12 },
+  container: { flex: 1, backgroundColor: '#0f0f0f' },
+  content: { padding: 16, paddingBottom: 32 },
+  title: { fontSize: 28, fontWeight: '700', color: '#ffffff', marginBottom: 4 },
+  subtitle: { fontSize: 14, color: '#a0a0a0', marginBottom: 20 },
+  headerDebugText: { color: '#4CAF50', fontWeight: '700', fontSize: 13 },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12
+  },
   card: {
-    backgroundColor: '#ffffff',
+    width: '48%',
+    backgroundColor: '#1e1e1e',
     borderRadius: 14,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#e2e8f0'
+    padding: 18,
+    minHeight: 88
   },
-  cardSelected: { borderColor: '#0ea5e9', backgroundColor: '#f0f9ff' },
-  cardTitle: { fontSize: 18, fontWeight: '700', color: '#111827' },
-  cardMeta: { marginTop: 4, color: '#475569', fontSize: 13 },
-  actions: { flexDirection: 'row', gap: 10, marginTop: 8 },
-  secondaryButton: {
-    flex: 1,
-    backgroundColor: '#e2e8f0',
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center'
-  },
-  secondaryButtonText: { color: '#0f172a', fontWeight: '700' },
-  primaryButton: {
-    flex: 1,
-    backgroundColor: '#16a34a',
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center'
-  },
-  primaryButtonText: { color: '#ffffff', fontWeight: '700' }
+  cardTitle: { fontSize: 20, fontWeight: '700', color: '#ffffff' },
+  cardMeta: { marginTop: 6, color: '#a0a0a0', fontSize: 13 }
 });
-
