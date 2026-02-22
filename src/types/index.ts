@@ -1,17 +1,45 @@
-﻿export type PrayerName = 'Sabah' | 'Öğle' | 'İkindi' | 'Akşam' | 'Yatsı' | 'Teravih';
-export type PatternValue = 0 | 1;
+export enum PrayerType {
+  SABAH = 'SABAH',
+  OGLE = 'OGLE',
+  IKINDI = 'IKINDI',
+  AKSAM = 'AKSAM',
+  YATSI = 'YATSI',
+  TERAVIH = 'TERAVIH'
+}
 
-export type PrayerConfig = {
-  id: string;
-  name: PrayerName;
-  rakatCount: number;
-  pattern: PatternValue[];
-};
+export enum PatternPreset {
+  STANDARD_2 = 'STANDARD_2',
+  STANDARD_3 = 'STANDARD_3',
+  STANDARD_4 = 'STANDARD_4',
+  TERAVIH_20 = 'TERAVIH_20'
+}
 
-export type SessionState = 'idle' | 'running' | 'finished';
+export interface PrayerConfig {
+  id: PrayerType;
+  name: string;
+  defaultRakats: number;
+  defaultPattern: number[];
+  patternPreset: PatternPreset;
+}
+
+export enum SessionStatus {
+  IDLE = 'IDLE',
+  RUNNING = 'RUNNING',
+  PAUSED = 'PAUSED',
+  ENDED = 'ENDED'
+}
+
+export interface SessionState {
+  status: SessionStatus;
+  currentRakatIndex: number;
+  completedRakats: number;
+  debug: boolean;
+}
 
 export type RootStackParamList = {
   Home: undefined;
   Session: undefined;
   Settings: undefined;
+  Debug: undefined;
 };
+

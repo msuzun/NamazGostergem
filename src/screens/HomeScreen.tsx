@@ -1,33 +1,55 @@
-﻿import React from 'react';
+import React, { useLayoutEffect } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { usePrayerStore } from '../store/usePrayerStore';
-import type { RootStackParamList } from '../types';
+import { PrayerType, type RootStackParamList } from '../types';
+import { getDefaultConfig } from '../utils/patternGenerator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
+const PRAYER_ORDER: PrayerType[] = [
+  PrayerType.SABAH,
+  PrayerType.OGLE,
+  PrayerType.IKINDI,
+  PrayerType.AKSAM,
+  PrayerType.YATSI,
+  PrayerType.TERAVIH
+];
+
 export default function HomeScreen({ navigation }: Props) {
-  const prayers = usePrayerStore((state) => state.prayers);
-  const selectedPrayerId = usePrayerStore((state) => state.selectedPrayerId);
-  const setSelectedPrayerId = usePrayerStore((state) => state.setSelectedPrayerId);
+  const selectedPrayer = usePrayerStore((state) => state.selectedPrayer);
+  const selectPrayer = usePrayerStore((state) => state.selectPrayer);
+
+  const prayers = PRAYER_ORDER.map((prayer) => getDefaultConfig(prayer));
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <Pressable onPress={() => navigation.navigate('Debug')} hitSlop={8}>
+          <Text style={styles.headerDebugText}>[Debug]</Text>
+        </Pressable>
+      )
+    });
+  }, [navigation]);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.title}>NamazGostergem</Text>
-      <Text style={styles.subtitle}>Select a prayer (UI scaffold)</Text>
+      <Text style={styles.subtitle}>Select a prayer (domain model wired)</Text>
 
       <View style={styles.list}>
         {prayers.map((prayer) => {
-          const isSelected = prayer.id === selectedPrayerId;
+          const isSelected = prayer.id === selectedPrayer;
           return (
             <Pressable
               key={prayer.id}
-              onPress={() => setSelectedPrayerId(prayer.id)}
+              onPress={() => selectPrayer(prayer.id)}
               style={[styles.card, isSelected && styles.cardSelected]}
             >
               <Text style={styles.cardTitle}>{prayer.name}</Text>
-              <Text style={styles.cardMeta}>Rakat: {prayer.rakatCount}</Text>
-              <Text style={styles.cardMeta}>Pattern: [{prayer.pattern.join(', ')}]</Text>
+              <Text style={styles.cardMeta}>Varsayılan Rakat: {prayer.defaultRakats}</Text>
+              <Text style={styles.cardMeta}>Preset: {prayer.patternPreset}</Text>
+              <Text style={styles.cardMeta}>Pattern: [{prayer.defaultPattern.join(', ')}]</Text>
             </Pressable>
           );
         })}
@@ -50,6 +72,7 @@ const styles = StyleSheet.create({
   content: { padding: 16, gap: 16 },
   title: { fontSize: 28, fontWeight: '700', color: '#0f172a' },
   subtitle: { fontSize: 14, color: '#64748b' },
+  headerDebugText: { color: '#0ea5e9', fontWeight: '700', fontSize: 13 },
   list: { gap: 12 },
   card: {
     backgroundColor: '#ffffff',
@@ -79,3 +102,4 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: { color: '#ffffff', fontWeight: '700' }
 });
+
