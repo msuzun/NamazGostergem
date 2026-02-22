@@ -1,5 +1,5 @@
-import React from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+﻿import React from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { usePrayerStore } from '../store/usePrayerStore';
 import type { RootStackParamList } from '../types';
@@ -7,93 +7,75 @@ import type { RootStackParamList } from '../types';
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
 export default function HomeScreen({ navigation }: Props) {
-  const prayers = usePrayerStore((s) => s.prayers);
-  const selectedPrayerId = usePrayerStore((s) => s.session.selectedPrayerId);
-  const selectPrayer = usePrayerStore((s) => s.selectPrayer);
+  const prayers = usePrayerStore((state) => state.prayers);
+  const selectedPrayerId = usePrayerStore((state) => state.selectedPrayerId);
+  const setSelectedPrayerId = usePrayerStore((state) => state.setSelectedPrayerId);
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Prayer Selection</Text>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <Text style={styles.title}>NamazGostergem</Text>
+      <Text style={styles.subtitle}>Select a prayer (UI scaffold)</Text>
 
-      <FlatList
-        data={prayers}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={{ gap: 10 }}
-        renderItem={({ item }) => {
-          const selected = item.id === selectedPrayerId;
+      <View style={styles.list}>
+        {prayers.map((prayer) => {
+          const isSelected = prayer.id === selectedPrayerId;
           return (
             <Pressable
-              onPress={() => selectPrayer(item.id)}
-              style={[styles.card, selected && styles.cardSelected]}
+              key={prayer.id}
+              onPress={() => setSelectedPrayerId(prayer.id)}
+              style={[styles.card, isSelected && styles.cardSelected]}
             >
-              <View style={{ flex: 1 }}>
-                <Text style={styles.cardTitle}>{item.name}</Text>
-                <Text style={styles.cardSub}>
-                  Rakats: {item.rakatCount} | Pattern: [{item.pattern.join(', ')}]
-                </Text>
-              </View>
-
-              <Pressable
-                onPress={() => navigation.navigate('PrayerConfig', { prayerId: item.id })}
-                style={styles.smallBtn}
-              >
-                <Text style={styles.smallBtnText}>Config</Text>
-              </Pressable>
+              <Text style={styles.cardTitle}>{prayer.name}</Text>
+              <Text style={styles.cardMeta}>Rakat: {prayer.rakatCount}</Text>
+              <Text style={styles.cardMeta}>Pattern: [{prayer.pattern.join(', ')}]</Text>
             </Pressable>
           );
-        }}
-      />
+        })}
+      </View>
 
-      <View style={styles.footer}>
-        <Pressable style={styles.secondaryBtn} onPress={() => navigation.navigate('Info')}>
-          <Text style={styles.secondaryBtnText}>DND / Info</Text>
+      <View style={styles.actions}>
+        <Pressable style={styles.secondaryButton} onPress={() => navigation.navigate('Settings')}>
+          <Text style={styles.secondaryButtonText}>Settings</Text>
         </Pressable>
-
-        <Pressable style={styles.primaryBtn} onPress={() => navigation.navigate('Session')}>
-          <Text style={styles.primaryBtnText}>Start Session</Text>
+        <Pressable style={styles.primaryButton} onPress={() => navigation.navigate('Session')}>
+          <Text style={styles.primaryButtonText}>Open Session</Text>
         </Pressable>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc', padding: 16, paddingTop: 20 },
-  title: { fontSize: 24, fontWeight: '700', marginBottom: 12, color: '#0f172a' },
+  container: { flex: 1, backgroundColor: '#f8fafc' },
+  content: { padding: 16, gap: 16 },
+  title: { fontSize: 28, fontWeight: '700', color: '#0f172a' },
+  subtitle: { fontSize: 14, color: '#64748b' },
+  list: { gap: 12 },
   card: {
-    backgroundColor: 'white',
+    backgroundColor: '#ffffff',
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12
+    borderColor: '#e2e8f0'
   },
   cardSelected: { borderColor: '#0ea5e9', backgroundColor: '#f0f9ff' },
   cardTitle: { fontSize: 18, fontWeight: '700', color: '#111827' },
-  cardSub: { marginTop: 4, fontSize: 12, color: '#6b7280' },
-  smallBtn: {
-    backgroundColor: '#111827',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10
+  cardMeta: { marginTop: 4, color: '#475569', fontSize: 13 },
+  actions: { flexDirection: 'row', gap: 10, marginTop: 8 },
+  secondaryButton: {
+    flex: 1,
+    backgroundColor: '#e2e8f0',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center'
   },
-  smallBtnText: { color: 'white', fontWeight: '700' },
-  footer: { flexDirection: 'row', gap: 10, marginTop: 16 },
-  primaryBtn: {
+  secondaryButtonText: { color: '#0f172a', fontWeight: '700' },
+  primaryButton: {
     flex: 1,
     backgroundColor: '#16a34a',
-    padding: 14,
     borderRadius: 12,
+    paddingVertical: 12,
     alignItems: 'center'
   },
-  primaryBtnText: { color: 'white', fontWeight: '700', fontSize: 16 },
-  secondaryBtn: {
-    padding: 14,
-    borderRadius: 12,
-    backgroundColor: '#e2e8f0',
-    alignItems: 'center'
-  },
-  secondaryBtnText: { color: '#0f172a', fontWeight: '700' }
+  primaryButtonText: { color: '#ffffff', fontWeight: '700' }
 });

@@ -1,4 +1,4 @@
-{
+﻿{
   "expo": {
     "name": "NamazGostergem",
     "slug": "NamazGostergem",
@@ -8,11 +8,16 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSMotionUsageDescription": "NamazGostergem uses motion sensors during prayer sessions to detect rakat transitions and provide vibration guidance."
+        "NSMotionUsageDescription": "NamazGostergem uses motion sensors during prayer sessions to detect prayer movement and guide the user with haptic feedback."
       }
     },
     "android": {
-      "package": "com.example.namazgostergem"
+      "package": "com.example.namazgostergem",
+      "permissions": [
+        "VIBRATE",
+        "ACCESS_NOTIFICATION_POLICY",
+        "WRITE_SETTINGS"
+      ]
     }
   }
 }
