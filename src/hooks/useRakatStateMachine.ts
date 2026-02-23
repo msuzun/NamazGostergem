@@ -1,0 +1,78 @@
+import { useState, useRef, useEffect } from 'react';
+import type { AccelerometerSample } from '../services/sensorService';
+import { extractFeatures } from '../algorithms/features';
+import { createRakatStateMachine, RakatState, type RakatEvent } from '../algorithms/rakatStateMachine';
+import { usePrayerStore } from '../store/usePrayerStore';
+import { vibratePlatform } from '../services/vibrationService';
+import { useAccelerometer } from './useAccelerometer';
+
+const MAX_DEBUG_LOGS = 20;
+
+export function useRakatStateMachine(enabled: boolean): {
+  currentFsmState: RakatState;
+  debugLogs: string[];
+  lastSample: AccelerometerSample | null;
+  lastPitch: number | null;
+} {
+  const advanceRakat = usePrayerStore((state) => state.advanceRakat);
+  const debug = usePrayerStore((state) => state.debug);
+
+  const sample = useAccelerometer(enabled, debug);
+
+  const [currentFsmState, setCurrentFsmState] = useState<RakatState>(RakatState.STANDING);
+  const [debugLogs, setDebugLogs] = useState<string[]>([]);
+  const [lastPitch, setLastPitch] = useState<number | null>(null);
+
+  const machineRef = useRef<ReturnType<typeof createRakatStateMachine> | null>(null);
+
+  useEffect(() => {
+    if (!enabled) {
+      if (machineRef.current) {
+        machineRef.current.reset();
+        machineRef.current = null;
+      }
+      setCurrentFsmState(RakatState.STANDING);
+      setDebugLogs([]);
+      setLastPitch(null);
+      return;
+    }
+
+    machineRef.current = createRakatStateMachine({
+      debug,
+      onEvent: (event: RakatEvent) => {
+        if (event.type === 'RAKAT_COMPLETED') {
+          advanceRakat();
+          const store = usePrayerStore.getState();
+          const idx = store.currentRakatIndex;
+          const pat = store.pattern;
+          if (pat[idx] === 0) {
+            vibratePlatform();
+          }
+        } else if (event.type === 'STATE_CHANGED') {
+          setCurrentFsmState(event.to);
+        } else if (event.type === 'DEBUG_LOG' && debug) {
+          setDebugLogs((prev) => [...prev.slice(-(MAX_DEBUG_LOGS - 1)), event.message]);
+        }
+      }
+    });
+
+    return () => {
+      machineRef.current?.reset();
+      machineRef.current = null;
+    };
+  }, [enabled, debug, advanceRakat]);
+
+  useEffect(() => {
+    if (!enabled || !sample || !machineRef.current) return;
+    machineRef.current.feed(sample);
+    const features = extractFeatures(sample);
+    setLastPitch(features.pitch);
+  }, [enabled, sample]);
+
+  return {
+    currentFsmState,
+    debugLogs,
+    lastSample: sample,
+    lastPitch
+  };
+}

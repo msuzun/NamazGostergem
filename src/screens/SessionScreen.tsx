@@ -1,10 +1,10 @@
 import React from 'react';
-import { StyleSheet, Text, View, Pressable } from 'react-native';
+import { StyleSheet, Text, View, Pressable, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { usePrayerStore } from '../store/usePrayerStore';
 import { SessionStatus } from '../types';
-import { useAccelerometer } from '../hooks/useAccelerometer';
+import { useRakatStateMachine } from '../hooks/useRakatStateMachine';
 import type { RootStackParamList } from '../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Session'>;
@@ -16,11 +16,11 @@ export default function SessionScreen({ navigation }: Props) {
   const rakats = usePrayerStore((state) => state.rakats);
   const debug = usePrayerStore((state) => state.debug);
   const sessionStatus = usePrayerStore((state) => state.sessionStatus);
+  const currentRakatIndex = usePrayerStore((state) => state.currentRakatIndex);
   const endSession = usePrayerStore((state) => state.endSession);
 
-  const sample = useAccelerometer(
-    sessionStatus === SessionStatus.RUNNING,
-    debug
+  const { currentFsmState, debugLogs, lastSample, lastPitch } = useRakatStateMachine(
+    sessionStatus === SessionStatus.RUNNING
   );
 
   const prayerName = prayerConfig?.name ?? 'Namaz';
@@ -30,28 +30,41 @@ export default function SessionScreen({ navigation }: Props) {
     navigation.navigate('Home');
   };
 
+  const lastLogs = debugLogs.slice(-5);
+
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom + 24 }]}>
       {debug && (
         <View style={styles.debugOverlay} pointerEvents="none">
-          {sample ? (
-            <>
-              <Text style={styles.debugText}>X:  {sample.x.toFixed(3)}</Text>
-              <Text style={styles.debugText}>Y: {sample.y.toFixed(3)}</Text>
-              <Text style={styles.debugText}>Z:  {sample.z.toFixed(3)}</Text>
-              <Text style={styles.debugText}>|a|: {sample.magnitude.toFixed(3)}</Text>
-            </>
-          ) : (
-            <Text style={styles.debugText}>No data</Text>
+          <Text style={styles.debugTitle}>FSM: {currentFsmState}</Text>
+          <Text style={styles.debugText}>
+            Pitch: {lastPitch != null ? `${lastPitch.toFixed(1)}°` : '—'}  |a|:{' '}
+            {lastSample ? lastSample.magnitude.toFixed(2) : '—'}
+          </Text>
+          {lastSample && (
+            <Text style={styles.debugText}>
+              X: {lastSample.x.toFixed(2)}  Y: {lastSample.y.toFixed(2)}  Z: {lastSample.z.toFixed(2)}
+            </Text>
           )}
+          <View style={styles.debugDivider} />
+          {lastLogs.map((line, i) => (
+            <Text key={i} style={styles.debugLogLine} numberOfLines={1}>
+              [log] {line}
+            </Text>
+          ))}
         </View>
       )}
 
-      <Text style={styles.title}>Oturum Başladı</Text>
-      <Text style={styles.info}>{prayerName}</Text>
-      <Text style={styles.info}>{rakats} Rekat</Text>
+      <View style={styles.centerBlock}>
+        <Text style={styles.title}>Oturum Başladı</Text>
+        <Text style={styles.info}>{prayerName}</Text>
+        <Text style={styles.info}>
+          Rekat: {currentRakatIndex + 1} / {rakats}
+        </Text>
+        <Text style={styles.infoDim}>Durum: {sessionStatus}</Text>
+      </View>
 
-      <Pressable style={styles.finishButton} onPress={onFinish}>
+      <Pressable style={[styles.finishButton, { bottom: insets.bottom + 24 }]} onPress={onFinish}>
         <Text style={styles.finishButtonText}>Bitir</Text>
       </Pressable>
     </View>
@@ -70,21 +83,46 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 20,
     left: 20,
+    right: 20,
+    maxWidth: 320,
     backgroundColor: 'rgba(0,0,0,0.6)',
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 8,
     zIndex: 10
   },
-  debugText: {
+  debugTitle: {
     color: '#0ff',
-    fontSize: 12,
-    fontVariant: ['tabular-nums']
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: 4
+  },
+  debugText: {
+    color: '#fff',
+    fontSize: 11,
+    fontVariant: ['tabular-nums'],
+    marginBottom: 2
+  },
+  debugDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    marginVertical: 6
+  },
+  debugLogLine: {
+    color: '#aaa',
+    fontSize: 10,
+    fontVariant: ['tabular-nums'],
+    marginBottom: 2
+  },
+  centerBlock: {
+    alignItems: 'center'
   },
   title: { color: '#ffffff', fontSize: 24, fontWeight: '700', marginBottom: 12 },
   info: { color: '#cbd5e1', fontSize: 16, marginBottom: 4 },
+  infoDim: { color: '#64748b', fontSize: 14, marginBottom: 4 },
   finishButton: {
-    marginTop: 32,
+    position: 'absolute',
+    bottom: 48,
     backgroundColor: '#2a2a2a',
     paddingVertical: 14,
     paddingHorizontal: 32,
