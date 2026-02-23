@@ -1,16 +1,21 @@
-import React from 'react';
-import { StyleSheet, Text, View, Pressable } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, Pressable, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { usePrayerStore } from '../store/usePrayerStore';
 import { SessionStatus } from '../types';
 import { useRakatStateMachine } from '../hooks/useRakatStateMachine';
+import { ensureDndForSessionStart, restoreDndAfterSession } from '../services/dndService';
+import { openAndroidDndSettings, openIosSettings } from '../native/systemSettings';
 import type { RootStackParamList } from '../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Session'>;
 
 export default function SessionScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
+
+  const [showDndModal, setShowDndModal] = useState(false);
+  const [dndExplained, setDndExplained] = useState(false);
 
   const prayerConfig = usePrayerStore((state) => state.prayerConfig);
   const rakats = usePrayerStore((state) => state.rakats);
@@ -22,6 +27,26 @@ export default function SessionScreen({ navigation }: Props) {
   const { currentFsmState, debugLogs, lastVibrationReason, lastSample, lastPitch } = useRakatStateMachine(
     sessionStatus === SessionStatus.RUNNING
   );
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function setup() {
+      const result = await ensureDndForSessionStart();
+      if (isMounted && result.requiresUserAction && !dndExplained) {
+        setShowDndModal(true);
+      }
+    }
+
+    if (sessionStatus === SessionStatus.RUNNING) {
+      setup();
+    }
+
+    return () => {
+      isMounted = false;
+      restoreDndAfterSession();
+    };
+  }, [sessionStatus, dndExplained]);
 
   const prayerName = prayerConfig?.name ?? 'Namaz';
 
@@ -72,6 +97,58 @@ export default function SessionScreen({ navigation }: Props) {
       <Pressable style={[styles.finishButton, { bottom: insets.bottom + 24 }]} onPress={onFinish}>
         <Text style={styles.finishButtonText}>Bitir</Text>
       </Pressable>
+
+      {showDndModal && (
+        <View style={styles.dndModalOverlay}>
+          <View style={styles.dndModal}>
+            <Text style={styles.dndTitle}>Rahatsız Etmeyin (DND) Önerisi</Text>
+            {Platform.OS === 'android' ? (
+              <>
+                <Text style={styles.dndText}>
+                  Namaz sırasında bildirim ve zil seslerinin rahatsız etmemesi için
+                  Android'de Rahatsız Etmeyin modunu açman önerilir.
+                </Text>
+                <Pressable
+                  style={styles.dndButton}
+                  onPress={async () => {
+                    setDndExplained(true);
+                    setShowDndModal(false);
+                    await openAndroidDndSettings();
+                  }}
+                >
+                  <Text style={styles.dndButtonText}>Android DND Ayarlarını Aç</Text>
+                </Pressable>
+              </>
+            ) : (
+              <>
+                <Text style={styles.dndText}>
+                  iOS'ta DND (Rahatsız Etmeyin) modu uygulama tarafından
+                  otomatik değiştirilemez. Lütfen Ayarlar'dan kendin aç.
+                </Text>
+                <Pressable
+                  style={styles.dndButton}
+                  onPress={async () => {
+                    setDndExplained(true);
+                    setShowDndModal(false);
+                    await openIosSettings();
+                  }}
+                >
+                  <Text style={styles.dndButtonText}>iOS Ayarlarını Aç</Text>
+                </Pressable>
+              </>
+            )}
+            <Pressable
+              style={[styles.dndButton, styles.dndSecondaryButton]}
+              onPress={() => {
+                setDndExplained(true);
+                setShowDndModal(false);
+              }}
+            >
+              <Text style={styles.dndSecondaryButtonText}>Daha Sonra</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -145,5 +222,53 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     borderRadius: 12
   },
-  finishButtonText: { color: '#ffffff', fontWeight: '700', fontSize: 16 }
+  finishButtonText: { color: '#ffffff', fontWeight: '700', fontSize: 16 },
+  dndModalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    zIndex: 20
+  },
+  dndModal: {
+    backgroundColor: '#1e1e1e',
+    borderRadius: 12,
+    padding: 16,
+    width: '100%'
+  },
+  dndTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8
+  },
+  dndText: {
+    color: '#ccc',
+    fontSize: 14,
+    marginBottom: 16
+  },
+  dndButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 8
+  },
+  dndButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600'
+  },
+  dndSecondaryButton: {
+    backgroundColor: '#333'
+  },
+  dndSecondaryButtonText: {
+    color: '#ddd',
+    fontSize: 14
+  }
 });
