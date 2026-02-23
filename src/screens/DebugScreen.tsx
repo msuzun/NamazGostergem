@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { usePrayerStore } from '../store/usePrayerStore';
 import { PrayerType } from '../types';
 import { getDefaultConfig } from '../utils/patternGenerator';
+import { useAccelerometer } from '../hooks/useAccelerometer';
 
 const PRAYER_ORDER: PrayerType[] = [
   PrayerType.SABAH,
@@ -15,6 +16,7 @@ const PRAYER_ORDER: PrayerType[] = [
 
 export default function DebugScreen() {
   const store = usePrayerStore();
+  const sample = useAccelerometer(true, true);
 
   const patternToDisplay =
     store.pattern.length > 0
@@ -26,6 +28,20 @@ export default function DebugScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.title}>Debug Screen</Text>
+
+      <Text style={styles.sectionTitle}>Accelerometer (live)</Text>
+      <View style={styles.sensorBox}>
+        {sample ? (
+          <>
+            <Text style={styles.sensorText}>X:  {sample.x.toFixed(4)}</Text>
+            <Text style={styles.sensorText}>Y: {sample.y.toFixed(4)}</Text>
+            <Text style={styles.sensorText}>Z:  {sample.z.toFixed(4)}</Text>
+            <Text style={styles.sensorText}>|a|: {sample.magnitude.toFixed(4)}</Text>
+          </>
+        ) : (
+          <Text style={styles.sensorText}>No data</Text>
+        )}
+      </View>
 
       <Text style={styles.sectionTitle}>Prayer Selection</Text>
       <View style={styles.buttonWrap}>
@@ -97,6 +113,16 @@ const styles = StyleSheet.create({
   content: { padding: 16, gap: 14 },
   title: { fontSize: 24, fontWeight: '700', color: '#0f172a' },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: '#111827', marginTop: 4 },
+  sensorBox: {
+    backgroundColor: '#0f172a',
+    borderRadius: 12,
+    padding: 12
+  },
+  sensorText: {
+    color: '#0ff',
+    fontFamily: 'monospace',
+    fontSize: 13
+  },
   buttonWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   smallButton: {
     backgroundColor: '#e2e8f0',
@@ -133,4 +159,3 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace'
   }
 });
-

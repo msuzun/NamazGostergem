@@ -3,6 +3,8 @@ import { StyleSheet, Text, View, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { usePrayerStore } from '../store/usePrayerStore';
+import { SessionStatus } from '../types';
+import { useAccelerometer } from '../hooks/useAccelerometer';
 import type { RootStackParamList } from '../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Session'>;
@@ -12,7 +14,14 @@ export default function SessionScreen({ navigation }: Props) {
 
   const prayerConfig = usePrayerStore((state) => state.prayerConfig);
   const rakats = usePrayerStore((state) => state.rakats);
+  const debug = usePrayerStore((state) => state.debug);
+  const sessionStatus = usePrayerStore((state) => state.sessionStatus);
   const endSession = usePrayerStore((state) => state.endSession);
+
+  const sample = useAccelerometer(
+    sessionStatus === SessionStatus.RUNNING,
+    debug
+  );
 
   const prayerName = prayerConfig?.name ?? 'Namaz';
 
@@ -23,6 +32,21 @@ export default function SessionScreen({ navigation }: Props) {
 
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom + 24 }]}>
+      {debug && (
+        <View style={styles.debugOverlay} pointerEvents="none">
+          {sample ? (
+            <>
+              <Text style={styles.debugText}>X:  {sample.x.toFixed(3)}</Text>
+              <Text style={styles.debugText}>Y: {sample.y.toFixed(3)}</Text>
+              <Text style={styles.debugText}>Z:  {sample.z.toFixed(3)}</Text>
+              <Text style={styles.debugText}>|a|: {sample.magnitude.toFixed(3)}</Text>
+            </>
+          ) : (
+            <Text style={styles.debugText}>No data</Text>
+          )}
+        </View>
+      )}
+
       <Text style={styles.title}>Oturum Başladı</Text>
       <Text style={styles.info}>{prayerName}</Text>
       <Text style={styles.info}>{rakats} Rekat</Text>
@@ -41,6 +65,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24
+  },
+  debugOverlay: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    zIndex: 10
+  },
+  debugText: {
+    color: '#0ff',
+    fontSize: 12,
+    fontVariant: ['tabular-nums']
   },
   title: { color: '#ffffff', fontSize: 24, fontWeight: '700', marginBottom: 12 },
   info: { color: '#cbd5e1', fontSize: 16, marginBottom: 4 },
