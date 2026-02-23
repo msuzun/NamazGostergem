@@ -41,6 +41,7 @@ export type RootStackParamList = {
   SessionSetup: undefined;
   Session: undefined;
   Settings: undefined;
+  Calibration: undefined;
   Debug: undefined;
 };
 

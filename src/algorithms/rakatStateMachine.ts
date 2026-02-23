@@ -5,10 +5,8 @@
 
 import type { AccelerometerSample } from '../services/sensorService';
 import { extractFeatures, type PostureFeatures } from './features';
-import {
-  RAKAT_CONFIG,
-  RISING_STABILIZE_SAMPLES
-} from './rakatConfig';
+import { RAKAT_CONFIG } from './rakatConfig';
+import type { ThresholdSettings } from '../services/settingsService';
 
 export enum RakatState {
   STANDING = 'STANDING',
@@ -24,28 +22,59 @@ export type RakatEvent =
   | { type: 'STATE_CHANGED'; from: RakatState; to: RakatState }
   | { type: 'DEBUG_LOG'; message: string };
 
+type FsmConfig = {
+  standingMinPitch: number;
+  rukuMaxPitch: number;
+  sajdahMaxPitch: number;
+  sittingPitchMin: number;
+  sittingPitchMax: number;
+  requiredStableSamples: number;
+  risingStabilizeSamples: number;
+};
+
+function buildConfig(thresholds?: Partial<ThresholdSettings>): FsmConfig {
+  const [sitMin, sitMax] = RAKAT_CONFIG.SITTING_PITCH_RANGE;
+  const debounceMs = thresholds?.debounceMs ?? RAKAT_CONFIG.DEBOUNCE_MS;
+  const risingStabilizeMs = thresholds?.risingStabilizeMs ?? RAKAT_CONFIG.RISING_STABILIZE_MS;
+  const sampleRateHz = RAKAT_CONFIG.SAMPLE_RATE_HZ;
+
+  return {
+    standingMinPitch: thresholds?.standingMinPitch ?? RAKAT_CONFIG.STANDING_MIN_PITCH,
+    rukuMaxPitch: thresholds?.rukuMaxPitch ?? RAKAT_CONFIG.RUKU_MAX_PITCH,
+    sajdahMaxPitch: thresholds?.sajdahMaxPitch ?? RAKAT_CONFIG.SAJDAH_MAX_PITCH,
+    sittingPitchMin: thresholds?.sittingPitchMin ?? sitMin,
+    sittingPitchMax: thresholds?.sittingPitchMax ?? sitMax,
+    requiredStableSamples: Math.max(1, Math.round((debounceMs / 1000) * sampleRateHz)),
+    risingStabilizeSamples: Math.max(1, Math.round((risingStabilizeMs / 1000) * sampleRateHz))
+  };
+}
+
 export type RakatStateMachineOptions = {
   onEvent: (event: RakatEvent) => void;
   debug?: boolean;
+  thresholds?: Partial<ThresholdSettings>;
 };
 
-const REQUIRED_STABLE_SAMPLES = RAKAT_CONFIG.SAMPLES_PER_DEBOUNCE;
-const [SIT_MIN, SIT_MAX] = RAKAT_CONFIG.SITTING_PITCH_RANGE;
-
-function getCandidateState(current: RakatState, pitch: number): RakatState | null {
+function getCandidateState(
+  current: RakatState,
+  pitch: number,
+  config: FsmConfig
+): RakatState | null {
   switch (current) {
     case RakatState.STANDING:
-      return pitch <= RAKAT_CONFIG.RUKU_MAX_PITCH ? RakatState.RUKU : null;
+      return pitch <= config.rukuMaxPitch ? RakatState.RUKU : null;
     case RakatState.RUKU:
-      return pitch <= RAKAT_CONFIG.SAJDAH_MAX_PITCH ? RakatState.SAJDAH_1 : null;
+      return pitch <= config.sajdahMaxPitch ? RakatState.SAJDAH_1 : null;
     case RakatState.SAJDAH_1:
-      return pitch >= SIT_MIN && pitch <= SIT_MAX ? RakatState.SITTING : null;
+      return pitch >= config.sittingPitchMin && pitch <= config.sittingPitchMax
+        ? RakatState.SITTING
+        : null;
     case RakatState.SITTING:
-      return pitch <= RAKAT_CONFIG.SAJDAH_MAX_PITCH ? RakatState.SAJDAH_2 : null;
+      return pitch <= config.sajdahMaxPitch ? RakatState.SAJDAH_2 : null;
     case RakatState.SAJDAH_2:
-      return pitch >= RAKAT_CONFIG.RUKU_MAX_PITCH ? RakatState.RISING : null;
+      return pitch >= config.rukuMaxPitch ? RakatState.RISING : null;
     case RakatState.RISING:
-      return pitch >= RAKAT_CONFIG.STANDING_MIN_PITCH ? RakatState.STANDING : null;
+      return pitch >= config.standingMinPitch ? RakatState.STANDING : null;
     default:
       return null;
   }
@@ -56,7 +85,8 @@ export function createRakatStateMachine(options: RakatStateMachineOptions): {
   reset(): void;
   getCurrentState(): RakatState;
 } {
-  const { onEvent, debug = false } = options;
+  const { onEvent, debug = false, thresholds } = options;
+  const config = buildConfig(thresholds);
 
   let currentState: RakatState = RakatState.STANDING;
   let candidateState: RakatState | null = null;
@@ -88,7 +118,7 @@ export function createRakatStateMachine(options: RakatStateMachineOptions): {
   function feed(sample: AccelerometerSample): void {
     const features: PostureFeatures = extractFeatures(sample);
     const { pitch, magnitude } = features;
-    const candidate = getCandidateState(currentState, pitch);
+    const candidate = getCandidateState(currentState, pitch, config);
 
     if (debug && (candidate !== candidateState || stableCount === 0)) {
       emit({
@@ -116,7 +146,10 @@ export function createRakatStateMachine(options: RakatStateMachineOptions): {
     stableCount += 1;
 
     if (currentState === RakatState.RISING && candidate === RakatState.STANDING) {
-      if (risingStableCount >= RISING_STABILIZE_SAMPLES && stableCount >= REQUIRED_STABLE_SAMPLES) {
+      if (
+        risingStableCount >= config.risingStabilizeSamples &&
+        stableCount >= config.requiredStableSamples
+      ) {
         transitionTo(RakatState.STANDING);
         emit({ type: 'RAKAT_COMPLETED' });
         if (debug) {
@@ -126,7 +159,7 @@ export function createRakatStateMachine(options: RakatStateMachineOptions): {
       return;
     }
 
-    if (stableCount >= REQUIRED_STABLE_SAMPLES) {
+    if (stableCount >= config.requiredStableSamples) {
       transitionTo(candidate);
     }
   }

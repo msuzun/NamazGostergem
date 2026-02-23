@@ -24,9 +24,14 @@ export default function HomeScreen({ navigation }: Props) {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <Pressable onPress={() => navigation.navigate('Debug')} hitSlop={8}>
-          <Text style={styles.headerDebugText}>[Debug]</Text>
-        </Pressable>
+        <View style={styles.headerRight}>
+          <Pressable onPress={() => navigation.navigate('Settings')} hitSlop={8}>
+            <Text style={styles.headerSettingsText}>⚙️</Text>
+          </Pressable>
+          <Pressable onPress={() => navigation.navigate('Debug')} hitSlop={8}>
+            <Text style={styles.headerDebugText}>[Debug]</Text>
+          </Pressable>
+        </View>
       )
     });
   }, [navigation]);
@@ -62,7 +67,9 @@ const styles = StyleSheet.create({
   content: { padding: 16, paddingBottom: 32 },
   title: { fontSize: 28, fontWeight: '700', color: '#ffffff', marginBottom: 4 },
   subtitle: { fontSize: 14, color: '#a0a0a0', marginBottom: 20 },
-  headerDebugText: { color: '#4CAF50', fontWeight: '700', fontSize: 13 },
+  headerRight: { flexDirection: 'row', gap: 12, marginRight: 12 },
+  headerSettingsText: { color: '#4CAF50', fontSize: 14 },
+  headerDebugText: { color: '#888', fontSize: 12 },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',

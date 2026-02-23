@@ -1,5 +1,12 @@
 import { create } from 'zustand';
 import { getDefaultConfig, generatePattern } from '../utils/patternGenerator';
+import {
+  getDefaultThresholds,
+  loadThresholds,
+  saveThresholds,
+  resetThresholds,
+  type ThresholdSettings
+} from '../services/settingsService';
 import { PrayerType, SessionStatus, type PrayerConfig } from '../types';
 
 type PrayerStoreState = {
@@ -11,6 +18,8 @@ type PrayerStoreState = {
   currentRakatIndex: number;
   completedRakats: number;
   debug: boolean;
+  thresholds: ThresholdSettings;
+  thresholdsLoaded: boolean;
 };
 
 type PrayerStoreActions = {
@@ -24,6 +33,10 @@ type PrayerStoreActions = {
   endSession: () => void;
   advanceRakat: () => void;
   resetSession: () => void;
+  loadThresholdsFromStorage: () => Promise<void>;
+  updateThresholds: (partial: Partial<ThresholdSettings>) => void;
+  saveThresholdsToStorage: () => Promise<void>;
+  resetThresholdsToDefaults: () => Promise<void>;
 };
 
 type PrayerStore = PrayerStoreState & PrayerStoreActions;
@@ -39,6 +52,8 @@ export const usePrayerStore = create<PrayerStore>((set, get) => ({
   currentRakatIndex: 0,
   completedRakats: 0,
   debug: false,
+  thresholds: getDefaultThresholds(),
+  thresholdsLoaded: false,
 
   selectPrayer: (prayer) => {
     const config = getDefaultConfig(prayer);
@@ -117,6 +132,24 @@ export const usePrayerStore = create<PrayerStore>((set, get) => ({
       sessionStatus: SessionStatus.IDLE,
       currentRakatIndex: 0,
       completedRakats: 0
-    })
-}));
+    }),
 
+  loadThresholdsFromStorage: async () => {
+    const loaded = await loadThresholds();
+    set({ thresholds: loaded, thresholdsLoaded: true });
+  },
+
+  updateThresholds: (partial) =>
+    set((state) => ({
+      thresholds: { ...state.thresholds, ...partial }
+    })),
+
+  saveThresholdsToStorage: async () => {
+    await saveThresholds(get().thresholds);
+  },
+
+  resetThresholdsToDefaults: async () => {
+    await resetThresholds();
+    set({ thresholds: getDefaultThresholds() });
+  }
+}));

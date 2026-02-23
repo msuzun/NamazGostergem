@@ -21,6 +21,7 @@ export function useRakatStateMachine(enabled: boolean): {
   resetFsm: () => void;
 } {
   const debug = usePrayerStore((state) => state.debug);
+  const thresholds = usePrayerStore((state) => state.thresholds);
 
   const sample = useAccelerometer(enabled, debug);
 
@@ -53,6 +54,7 @@ export function useRakatStateMachine(enabled: boolean): {
 
     machineRef.current = createRakatStateMachine({
       debug,
+      thresholds,
       onEvent: (event: RakatEvent) => {
         if (event.type === 'RAKAT_COMPLETED') {
           const { pattern, currentRakatIndex, advanceRakat } = usePrayerStore.getState();

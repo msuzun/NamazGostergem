@@ -1,6 +1,7 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../types';
+import CalibrationScreen from '../screens/CalibrationScreen';
 import DebugScreen from '../screens/DebugScreen';
 import HomeScreen from '../screens/HomeScreen';
 import SessionSetupScreen from '../screens/SessionSetupScreen';
@@ -33,7 +34,16 @@ export default function RootNavigator() {
           headerShown: false
         }}
       />
-      <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
+      <Stack.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{ title: 'Ayarlar' }}
+      />
+      <Stack.Screen
+        name="Calibration"
+        component={CalibrationScreen}
+        options={{ title: 'Kalibrasyon' }}
+      />
       <Stack.Screen name="Debug" component={DebugScreen} options={{ title: 'Debug' }} />
     </Stack.Navigator>
   );
