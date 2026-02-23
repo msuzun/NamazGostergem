@@ -4,6 +4,7 @@ import type { RootStackParamList } from '../types';
 import CalibrationScreen from '../screens/CalibrationScreen';
 import DebugScreen from '../screens/DebugScreen';
 import HomeScreen from '../screens/HomeScreen';
+import ReplayScreen from '../screens/ReplayScreen';
 import SessionSetupScreen from '../screens/SessionSetupScreen';
 import SessionScreen from '../screens/SessionScreen';
 import SettingsScreen from '../screens/SettingsScreen';
@@ -44,6 +45,7 @@ export default function RootNavigator() {
         component={CalibrationScreen}
         options={{ title: 'Kalibrasyon' }}
       />
+      <Stack.Screen name="Replay" component={ReplayScreen} options={{ title: 'Replay' }} />
       <Stack.Screen name="Debug" component={DebugScreen} options={{ title: 'Debug' }} />
     </Stack.Navigator>
   );

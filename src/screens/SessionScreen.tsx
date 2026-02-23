@@ -65,10 +65,18 @@ export default function SessionScreen({ navigation }: Props) {
   });
 
   // Prevents Android hardware back button and iOS swipe-back from exiting
-  // session without proper teardown. User must use the long-press ExitButton to exit.
+  // session without proper teardown. Explicit "Bitir" uses navigation.reset to Home — allow it.
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
       if (sessionStatus !== SessionStatus.RUNNING) return;
+      const action = (e as any).data?.action;
+      const isResetToHome =
+        action?.type === 'RESET' &&
+        Array.isArray(action?.payload?.routes) &&
+        action.payload.routes[0]?.name === 'Home';
+      const isNavigateHome =
+        action?.type === 'NAVIGATE' && action?.payload?.name === 'Home';
+      if (isResetToHome || isNavigateHome) return;
       e.preventDefault();
     });
     return unsubscribe;

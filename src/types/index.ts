@@ -43,5 +43,6 @@ export type RootStackParamList = {
   Settings: undefined;
   Calibration: undefined;
   Debug: undefined;
+  Replay: undefined;
 };
 

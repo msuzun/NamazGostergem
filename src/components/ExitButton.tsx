@@ -8,17 +8,19 @@ type Props = {
 };
 
 /**
- * Long-press to exit session. onExit is async-safe — awaited before navigation.
+ * Exit session: single press or long-press both call onExit (teardown + navigation).
+ * onExit is async-safe — awaited before navigation.
  */
 export default function ExitButton({ onExit, style, textStyle }: Props) {
-  const handleLongPress = () => {
+  const handleExit = () => {
     Promise.resolve(onExit()).catch(() => {});
   };
 
   return (
     <Pressable
       style={[styles.button, style]}
-      onLongPress={handleLongPress}
+      onPress={handleExit}
+      onLongPress={handleExit}
       delayLongPress={600}
     >
       <Text style={[styles.buttonText, textStyle]}>Bitir</Text>

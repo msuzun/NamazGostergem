@@ -1,10 +1,13 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { usePrayerStore } from '../store/usePrayerStore';
-import { PrayerType } from '../types';
+import { PrayerType, type RootStackParamList } from '../types';
 import { getDefaultConfig } from '../utils/patternGenerator';
 import { useAccelerometer } from '../hooks/useAccelerometer';
 import { triggerPatternVibration } from '../services/vibrationService';
+
+type Props = NativeStackScreenProps<RootStackParamList, 'Debug'>;
 
 const PRAYER_ORDER: PrayerType[] = [
   PrayerType.SABAH,
@@ -15,7 +18,7 @@ const PRAYER_ORDER: PrayerType[] = [
   PrayerType.TERAVIH
 ];
 
-export default function DebugScreen() {
+export default function DebugScreen({ navigation }: Props) {
   const store = usePrayerStore();
   const sample = useAccelerometer(true, true);
 
@@ -29,6 +32,13 @@ export default function DebugScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.title}>Debug Screen</Text>
+
+      <Pressable
+        style={styles.debugButton}
+        onPress={() => navigation.navigate('Replay')}
+      >
+        <Text style={styles.debugButtonText}>Replay / Simulation</Text>
+      </Pressable>
 
       <Text style={styles.sectionTitle}>Accelerometer (live)</Text>
       <View style={styles.sensorBox}>
@@ -117,6 +127,15 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc' },
   content: { padding: 16, gap: 14 },
   title: { fontSize: 24, fontWeight: '700', color: '#0f172a' },
+  debugButton: {
+    backgroundColor: '#1e3a5f',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    alignSelf: 'flex-start',
+    marginBottom: 12
+  },
+  debugButtonText: { color: '#7eb8ff', fontWeight: '600', fontSize: 14 },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: '#111827', marginTop: 4 },
   sensorBox: {
     backgroundColor: '#0f172a',
