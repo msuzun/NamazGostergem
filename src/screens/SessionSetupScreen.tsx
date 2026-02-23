@@ -111,7 +111,13 @@ export default function SessionSetupScreen({ navigation }: Props) {
         )}
       </View>
 
-      <Pressable style={styles.startButton} onPress={onStart}>
+      <Pressable
+        style={styles.startButton}
+        onPress={onStart}
+        accessibilityLabel="Namaz seansını başlat"
+        accessibilityRole="button"
+        accessibilityHint="Oturum ekranına gider ve sensörler başlar"
+      >
         <Text style={styles.startButtonText}>Başla</Text>
       </Pressable>
     </ScrollView>
@@ -168,6 +174,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#4CAF50',
     borderRadius: 16,
     paddingVertical: 16,
+    minHeight: 44,
     alignItems: 'center',
     marginTop: 8
   },

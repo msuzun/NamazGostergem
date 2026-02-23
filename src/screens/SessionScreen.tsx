@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { StyleSheet, Text, View, Pressable, Platform } from 'react-native';
+import { StyleSheet, Text, View, Pressable, Platform, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as Brightness from 'expo-brightness';
@@ -11,6 +11,7 @@ import { useSessionTeardown } from '../hooks/useSessionTeardown';
 import { useAppStateSession } from '../hooks/useAppStateSession';
 import { ensureDndForSessionStart } from '../services/dndService';
 import { openAndroidDndSettings, openIosSettings } from '../native/systemSettings';
+import { checkSensorPermission, requestSensorPermission } from '../services/sensorPermissionService';
 import ExitButton from '../components/ExitButton';
 import type { RootStackParamList } from '../types';
 
@@ -22,6 +23,7 @@ export default function SessionScreen({ navigation }: Props) {
   const [showDndModal, setShowDndModal] = useState(false);
   const [dndExplained, setDndExplained] = useState(false);
   const [backgroundWarning, setBackgroundWarning] = useState(false);
+  const [showPermissionOverlay, setShowPermissionOverlay] = useState(false);
 
   const prevBrightness = useRef(1.0);
 
@@ -39,6 +41,7 @@ export default function SessionScreen({ navigation }: Props) {
     lastVibrationReason,
     lastSample,
     lastPitch,
+    sensorError,
     resetFsm
   } = useRakatStateMachine(sessionStatus === SessionStatus.RUNNING);
 
@@ -111,6 +114,10 @@ export default function SessionScreen({ navigation }: Props) {
         if (dnd.requiresUserAction && !dndExplained) {
           setShowDndModal(true);
         }
+        const permStatus = await checkSensorPermission();
+        if (isMounted && permStatus !== 'granted') {
+          setShowPermissionOverlay(true);
+        }
       }
     }
 
@@ -127,6 +134,16 @@ export default function SessionScreen({ navigation }: Props) {
 
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom + 24 }]}>
+      {sensorError != null && sensorError.length > 0 && (
+        <View style={styles.sensorErrorOverlay} pointerEvents="box-none">
+          <Text style={styles.sensorErrorTitle}>Hareket Sensörü Kullanılamıyor</Text>
+          <Text style={styles.sensorErrorText}>
+            Cihazın hareket sensörü devre dışı veya izin verilmemiş olabilir. Uygulama
+            yine de çalışır, fakat rakat algılama devre dışı.
+          </Text>
+        </View>
+      )}
+
       {debug && (
         <View style={styles.debugOverlay} pointerEvents="none">
           <Text style={styles.debugTitle}>FSM: {currentFsmState}</Text>
@@ -170,6 +187,8 @@ export default function SessionScreen({ navigation }: Props) {
           }}
           style={styles.finishButton}
           textStyle={styles.finishButtonText}
+          accessibilityLabel="Oturumu bitir"
+          accessibilityHint="Namaz oturumunu sonlandırır ve ana sayfaya döner"
         />
       </View>
 
@@ -202,6 +221,57 @@ export default function SessionScreen({ navigation }: Props) {
         </View>
       )}
 
+      {showPermissionOverlay && (
+        <View style={styles.permissionOverlay}>
+          <View style={styles.permissionModal}>
+            <Text style={styles.permissionTitle}>Hareket sensörü izni gerekli</Text>
+            <Text style={styles.permissionText}>
+              Rekat algılama için hareket sensörüne erişim gerekiyor. İzin verirsen
+              oturum sırasında rekat hatırlatması çalışır.
+            </Text>
+            <Pressable
+              style={styles.permissionPrimaryButton}
+              onPress={async () => {
+                const status = await requestSensorPermission();
+                if (status === 'granted') setShowPermissionOverlay(false);
+              }}
+              accessibilityLabel="Hareket sensörü iznini iste"
+              accessibilityHint="Sistem izin ekranını açar"
+            >
+              <Text style={styles.permissionPrimaryButtonText}>İzni İste</Text>
+            </Pressable>
+            <Pressable
+              style={styles.permissionSecondaryButton}
+              onPress={() => setShowPermissionOverlay(false)}
+              accessibilityLabel="Sensörsüz devam et"
+              accessibilityHint="Rakat algılama olmadan oturuma devam eder"
+            >
+              <Text style={styles.permissionSecondaryButtonText}>Sensörsüz devam et</Text>
+            </Pressable>
+            <Pressable
+              style={styles.permissionSecondaryButton}
+              onPress={() => Linking.openSettings()}
+              accessibilityLabel="Uygulama ayarlarını aç"
+              accessibilityHint="Cihaz ayarlarında izin verebilirsin"
+            >
+              <Text style={styles.permissionSecondaryButtonText}>Ayarları Aç</Text>
+            </Pressable>
+            <Pressable
+              style={styles.permissionSecondaryButton}
+              onPress={async () => {
+                setShowPermissionOverlay(false);
+                await teardown();
+                navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
+              }}
+              accessibilityLabel="Ana sayfaya dön"
+              accessibilityHint="Oturumu bitirir ve ana sayfaya gider"
+            >
+              <Text style={styles.permissionSecondaryButtonText}>Ana sayfaya dön</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
+
       {showDndModal && (
         <View style={styles.dndModalOverlay}>
           <View style={styles.dndModal}>
@@ -219,6 +289,8 @@ export default function SessionScreen({ navigation }: Props) {
                     setShowDndModal(false);
                     await openAndroidDndSettings();
                   }}
+                  accessibilityLabel="Android Rahatsız Etmeyin ayarlarını aç"
+                  accessibilityHint="Sistem DND ayar sayfasına gider"
                 >
                   <Text style={styles.dndButtonText}>Android DND Ayarlarını Aç</Text>
                 </Pressable>
@@ -236,6 +308,8 @@ export default function SessionScreen({ navigation }: Props) {
                     setShowDndModal(false);
                     await openIosSettings();
                   }}
+                  accessibilityLabel="iOS ayarlarını aç"
+                  accessibilityHint="Sistem ayarlarına gider"
                 >
                   <Text style={styles.dndButtonText}>iOS Ayarlarını Aç</Text>
                 </Pressable>
@@ -247,6 +321,8 @@ export default function SessionScreen({ navigation }: Props) {
                 setDndExplained(true);
                 setShowDndModal(false);
               }}
+              accessibilityLabel="DND bilgisini kapat, daha sonra"
+              accessibilityHint="Modalı kapatır"
             >
               <Text style={styles.dndSecondaryButtonText}>Daha Sonra</Text>
             </Pressable>
@@ -311,6 +387,90 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 11,
     fontWeight: 'bold'
+  },
+  sensorErrorOverlay: {
+    position: 'absolute',
+    top: 12,
+    left: 16,
+    right: 16,
+    backgroundColor: 'rgba(30, 25, 0, 0.95)',
+    borderRadius: 10,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#f59e0b',
+    zIndex: 8
+  },
+  sensorErrorTitle: {
+    color: '#fbbf24',
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 6
+  },
+  sensorErrorText: {
+    color: '#e5e7eb',
+    fontSize: 13,
+    lineHeight: 18
+  },
+  permissionOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.88)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    zIndex: 110
+  },
+  permissionModal: {
+    backgroundColor: '#1e1e1e',
+    borderRadius: 14,
+    padding: 22,
+    width: '100%',
+    maxWidth: 340
+  },
+  permissionTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 10,
+    textAlign: 'center'
+  },
+  permissionText: {
+    color: '#cbd5e1',
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 20,
+    textAlign: 'center'
+  },
+  permissionPrimaryButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginBottom: 10,
+    minHeight: 44,
+    justifyContent: 'center'
+  },
+  permissionPrimaryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700'
+  },
+  permissionSecondaryButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginBottom: 8,
+    minHeight: 44,
+    justifyContent: 'center'
+  },
+  permissionSecondaryButtonText: {
+    color: '#94a3b8',
+    fontSize: 14
   },
   centerBlock: {
     alignItems: 'center'

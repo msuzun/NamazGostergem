@@ -40,14 +40,17 @@ export default function ReplayScreen({ navigation }: Props) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Replay / Simulation</Text>
+      <Text style={styles.title}>Tekrar / Simülasyon</Text>
 
-      <Text style={styles.sectionLabel}>Replay listesi</Text>
+      <Text style={styles.sectionLabel}>Kayıt listesi</Text>
       {samples.map((meta) => (
         <Pressable
           key={meta.id}
           style={[styles.sampleRow, selectedReplay?.id === meta.id && styles.sampleRowSelected]}
           onPress={() => setSelectedReplay(meta)}
+          accessibilityLabel={`${meta.name} kaydını seç`}
+          accessibilityRole="button"
+          accessibilityState={{ selected: selectedReplay?.id === meta.id }}
         >
           <Text style={styles.sampleName}>{meta.name}</Text>
         </Pressable>
@@ -57,6 +60,9 @@ export default function ReplayScreen({ navigation }: Props) {
         style={[styles.runButton, (!selectedReplay || isRunning) && styles.runButtonDisabled]}
         onPress={handleRun}
         disabled={!selectedReplay || isRunning}
+        accessibilityLabel="Replay çalıştır"
+        accessibilityRole="button"
+        accessibilityHint="Seçili kayıtla state machine testi yapar"
       >
         {isRunning ? (
           <ActivityIndicator color="#fff" />
@@ -70,7 +76,7 @@ export default function ReplayScreen({ navigation }: Props) {
           <Text style={styles.resultLabel}>Sonuç özeti</Text>
           <Text style={styles.resultSummary}>Toplam rakat: {result.totalRakats}</Text>
 
-          <Text style={styles.timelineLabel}>Timeline</Text>
+          <Text style={styles.timelineLabel}>Zaman çizelgesi</Text>
           <FlatList
             style={styles.timelineList}
             data={result.stateTimeline}

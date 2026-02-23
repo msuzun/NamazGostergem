@@ -20,7 +20,7 @@ const PRAYER_ORDER: PrayerType[] = [
 
 export default function DebugScreen({ navigation }: Props) {
   const store = usePrayerStore();
-  const sample = useAccelerometer(true, true);
+  const { sample, error: sensorError } = useAccelerometer(true, true);
 
   const patternToDisplay =
     store.pattern.length > 0
@@ -31,18 +31,23 @@ export default function DebugScreen({ navigation }: Props) {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>Debug Screen</Text>
+      <Text style={styles.title}>Hata Ayıklama</Text>
 
       <Pressable
         style={styles.debugButton}
         onPress={() => navigation.navigate('Replay')}
+        accessibilityLabel="Tekrar / Simülasyon ekranına git"
+        accessibilityRole="button"
+        accessibilityHint="Kayıtlı sensör verisi ile state machine testi"
       >
-        <Text style={styles.debugButtonText}>Replay / Simulation</Text>
+        <Text style={styles.debugButtonText}>Tekrar / Simülasyon</Text>
       </Pressable>
 
-      <Text style={styles.sectionTitle}>Accelerometer (live)</Text>
+      <Text style={styles.sectionTitle}>İvmeölçer (canlı)</Text>
       <View style={styles.sensorBox}>
-        {sample ? (
+        {sensorError ? (
+          <Text style={styles.sensorErrorText}>{sensorError}</Text>
+        ) : sample ? (
           <>
             <Text style={styles.sensorText}>X:  {sample.x.toFixed(4)}</Text>
             <Text style={styles.sensorText}>Y: {sample.y.toFixed(4)}</Text>
@@ -50,46 +55,83 @@ export default function DebugScreen({ navigation }: Props) {
             <Text style={styles.sensorText}>|a|: {sample.magnitude.toFixed(4)}</Text>
           </>
         ) : (
-          <Text style={styles.sensorText}>No data</Text>
+          <Text style={styles.sensorText}>Veri yok</Text>
         )}
       </View>
 
-      <Text style={styles.sectionTitle}>Prayer Selection</Text>
+      <Text style={styles.sectionTitle}>Namaz Seçimi</Text>
       <View style={styles.buttonWrap}>
         {PRAYER_ORDER.map((prayer) => {
           const config = getDefaultConfig(prayer);
           return (
-            <Pressable key={prayer} style={styles.smallButton} onPress={() => store.selectPrayer(prayer)}>
+            <Pressable
+              key={prayer}
+              style={styles.smallButton}
+              onPress={() => store.selectPrayer(prayer)}
+              accessibilityLabel={config.name}
+              accessibilityRole="button"
+            >
               <Text style={styles.smallButtonText}>{config.name}</Text>
             </Pressable>
           );
         })}
       </View>
 
-      <Pressable onPress={() => triggerPatternVibration()} style={styles.testButton}>
+      <Pressable
+        onPress={() => triggerPatternVibration()}
+        style={styles.testButton}
+        accessibilityLabel="Test titreşim"
+        accessibilityRole="button"
+        accessibilityHint="Pattern titreşimini dener"
+      >
         <Text style={styles.testButtonText}>📳 Test Titreşim (pattern=0)</Text>
       </Pressable>
 
-      <Text style={styles.sectionTitle}>Session Actions</Text>
+      <Text style={styles.sectionTitle}>Oturum İşlemleri</Text>
       <View style={styles.buttonWrap}>
-        <Pressable style={styles.actionButton} onPress={store.startSession}>
-          <Text style={styles.actionButtonText}>startSession()</Text>
+        <Pressable
+          style={styles.actionButton}
+          onPress={store.startSession}
+          accessibilityLabel="Oturumu başlat"
+          accessibilityRole="button"
+        >
+          <Text style={styles.actionButtonText}>Oturumu Başlat</Text>
         </Pressable>
-        <Pressable style={styles.actionButton} onPress={store.advanceRakat}>
-          <Text style={styles.actionButtonText}>advanceRakat()</Text>
+        <Pressable
+          style={styles.actionButton}
+          onPress={store.advanceRakat}
+          accessibilityLabel="Rekat ilerlet"
+          accessibilityRole="button"
+        >
+          <Text style={styles.actionButtonText}>Rekat İlerlet</Text>
         </Pressable>
-        <Pressable style={styles.actionButton} onPress={store.endSession}>
-          <Text style={styles.actionButtonText}>endSession()</Text>
+        <Pressable
+          style={styles.actionButton}
+          onPress={store.endSession}
+          accessibilityLabel="Oturumu bitir"
+          accessibilityRole="button"
+        >
+          <Text style={styles.actionButtonText}>Oturumu Bitir</Text>
         </Pressable>
-        <Pressable style={styles.actionButton} onPress={store.resetSession}>
-          <Text style={styles.actionButtonText}>resetSession()</Text>
+        <Pressable
+          style={styles.actionButton}
+          onPress={store.resetSession}
+          accessibilityLabel="Oturumu sıfırla"
+          accessibilityRole="button"
+        >
+          <Text style={styles.actionButtonText}>Oturumu Sıfırla</Text>
         </Pressable>
-        <Pressable style={styles.actionButton} onPress={() => store.setDebug(!store.debug)}>
-          <Text style={styles.actionButtonText}>debug: {store.debug ? 'ON' : 'OFF'}</Text>
+        <Pressable
+          style={styles.actionButton}
+          onPress={() => store.setDebug(!store.debug)}
+          accessibilityLabel={store.debug ? 'Debug kapat' : 'Debug aç'}
+          accessibilityRole="button"
+        >
+          <Text style={styles.actionButtonText}>debug: {store.debug ? 'Açık' : 'Kapalı'}</Text>
         </Pressable>
       </View>
 
-      <Text style={styles.sectionTitle}>Pattern Chips</Text>
+      <Text style={styles.sectionTitle}>Rekat Deseni</Text>
       <View style={styles.chipsWrap}>
         {patternToDisplay.map((value, index) => (
           <View key={`${index}-${value}`} style={[styles.chip, value === 1 ? styles.chipStand : styles.chipSit]}>
@@ -97,10 +139,12 @@ export default function DebugScreen({ navigation }: Props) {
             <Text style={styles.chipText}>{value === 1 ? 'Kalk' : 'Otur'}</Text>
           </View>
         ))}
-        {patternToDisplay.length === 0 && <Text style={styles.emptyText}>No pattern yet. Select a prayer.</Text>}
+        {patternToDisplay.length === 0 && (
+          <Text style={styles.emptyText}>Henüz desen yok. Önce bir namaz seçin.</Text>
+        )}
       </View>
 
-      <Text style={styles.sectionTitle}>Store Snapshot</Text>
+      <Text style={styles.sectionTitle}>Store Özeti</Text>
       <View style={styles.jsonBox}>
         <Text style={styles.jsonText}>
           {JSON.stringify(
@@ -145,6 +189,10 @@ const styles = StyleSheet.create({
   sensorText: {
     color: '#0ff',
     fontFamily: 'monospace',
+    fontSize: 13
+  },
+  sensorErrorText: {
+    color: '#f59e0b',
     fontSize: 13
   },
   testButton: {

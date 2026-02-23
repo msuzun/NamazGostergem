@@ -177,7 +177,13 @@ export default function CalibrationScreen({ navigation }: Props) {
           kişiselleştirir.
         </Text>
         <Text style={styles.paragraph}>3 adım sürer: Ayakta, Rükû ve Secde.</Text>
-        <Pressable style={styles.primaryButton} onPress={runStandingStep}>
+        <Pressable
+          style={styles.primaryButton}
+          onPress={runStandingStep}
+          accessibilityLabel="Kalibrasyonu başlat"
+          accessibilityRole="button"
+          accessibilityHint="Ayakta, rükû ve secde adımlarını başlatır"
+        >
           <Text style={styles.primaryButtonText}>Başla</Text>
         </Pressable>
       </View>
@@ -259,10 +265,21 @@ export default function CalibrationScreen({ navigation }: Props) {
         </Text>
       </View>
 
-      <Pressable style={styles.primaryButton} onPress={applySuggested}>
+      <Pressable
+        style={styles.primaryButton}
+        onPress={applySuggested}
+        accessibilityLabel="Önerilen eşik değerlerini uygula ve kaydet"
+        accessibilityRole="button"
+        accessibilityHint="Eşikleri kaydeder ve ayarlar ekranına döner"
+      >
         <Text style={styles.primaryButtonText}>Önerilen Değerleri Uygula</Text>
       </Pressable>
-      <Pressable style={styles.secondaryButton} onPress={() => navigation.goBack()}>
+      <Pressable
+        style={styles.secondaryButton}
+        onPress={() => navigation.goBack()}
+        accessibilityLabel="İptal, geri dön"
+        accessibilityRole="button"
+      >
         <Text style={styles.secondaryButtonText}>İptal</Text>
       </Pressable>
     </View>
@@ -305,8 +322,10 @@ const styles = StyleSheet.create({
   primaryButton: {
     backgroundColor: '#4CAF50',
     paddingVertical: 14,
+    minHeight: 44,
     borderRadius: 10,
     alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 24,
     marginBottom: 8
   },
@@ -314,8 +333,10 @@ const styles = StyleSheet.create({
   secondaryButton: {
     backgroundColor: '#333',
     paddingVertical: 12,
+    minHeight: 44,
     borderRadius: 10,
-    alignItems: 'center'
+    alignItems: 'center',
+    justifyContent: 'center'
   },
   secondaryButtonText: { color: '#aaa', fontSize: 14 },
   table: { marginBottom: 20 },

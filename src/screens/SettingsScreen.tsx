@@ -133,7 +133,7 @@ export default function SettingsScreen({ navigation }: Props) {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.title}>Ayarlar & Eşikler</Text>
 
-      <Text style={styles.sectionTitle}>Açı Eşikleri (Angle Thresholds)</Text>
+      <Text style={styles.sectionTitle}>Açı Eşikleri</Text>
       <View style={styles.section}>{renderSteppers(ANGLE_FIELDS)}</View>
 
       <Text style={styles.sectionTitle}>Zamanlama (Timing)</Text>
@@ -149,18 +149,32 @@ export default function SettingsScreen({ navigation }: Props) {
 
       <Text style={styles.sectionTitle}>Eylemler (Actions)</Text>
       <View style={styles.section}>
-        <Pressable style={styles.primaryButton} onPress={handleSave}>
+        <Pressable
+          style={styles.primaryButton}
+          onPress={handleSave}
+          accessibilityLabel="Eşikleri kaydet"
+          accessibilityRole="button"
+          accessibilityHint="Eşik değerlerini cihaza kaydeder"
+        >
           <Text style={styles.primaryButtonText}>Kaydet</Text>
         </Pressable>
         {saveMessage != null && (
           <Text style={styles.saveMessage}>{saveMessage}</Text>
         )}
-        <Pressable style={styles.secondaryButton} onPress={handleReset}>
+        <Pressable
+          style={styles.secondaryButton}
+          onPress={handleReset}
+          accessibilityLabel="Eşikleri varsayılana sıfırla"
+          accessibilityRole="button"
+        >
           <Text style={styles.secondaryButtonText}>Varsayılana Sıfırla</Text>
         </Pressable>
         <Pressable
           style={styles.calibrationButton}
           onPress={() => navigation.navigate('Calibration')}
+          accessibilityLabel="Kalibrasyon sihirbazını aç"
+          accessibilityRole="button"
+          accessibilityHint="Ayakta, rükû ve secde açılarını ölçerek eşik önerir"
         >
           <Text style={styles.calibrationButtonText}>Kalibrasyon Sihirbazı</Text>
         </Pressable>
@@ -173,11 +187,21 @@ export default function SettingsScreen({ navigation }: Props) {
           Uygulama, Expo managed modda bu ayarları doğrudan değiştiremez.
         </Text>
         {Platform.OS === 'android' ? (
-          <Pressable style={styles.cardButton} onPress={openAndroidDndSettings}>
+          <Pressable
+            style={styles.cardButton}
+            onPress={openAndroidDndSettings}
+            accessibilityLabel="Android Rahatsız Etmeyin ayarlarını aç"
+            accessibilityRole="button"
+          >
             <Text style={styles.cardButtonText}>Android DND Ayarlarını Aç</Text>
           </Pressable>
         ) : (
-          <Pressable style={styles.cardButton} onPress={openIosSettings}>
+          <Pressable
+            style={styles.cardButton}
+            onPress={openIosSettings}
+            accessibilityLabel="iOS ayarlarını aç"
+            accessibilityRole="button"
+          >
             <Text style={styles.cardButtonText}>iOS Ayarlarını Aç</Text>
           </Pressable>
         )}

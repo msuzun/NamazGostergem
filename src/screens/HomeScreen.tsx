@@ -25,11 +25,23 @@ export default function HomeScreen({ navigation }: Props) {
     navigation.setOptions({
       headerRight: () => (
         <View style={styles.headerRight}>
-          <Pressable onPress={() => navigation.navigate('Settings')} hitSlop={8}>
+          <Pressable
+            onPress={() => navigation.navigate('Settings')}
+            hitSlop={12}
+            style={styles.headerButton}
+            accessibilityLabel="Ayarlar"
+            accessibilityRole="button"
+          >
             <Text style={styles.headerSettingsText}>⚙️</Text>
           </Pressable>
-          <Pressable onPress={() => navigation.navigate('Debug')} hitSlop={8}>
-            <Text style={styles.headerDebugText}>[Debug]</Text>
+          <Pressable
+            onPress={() => navigation.navigate('Debug')}
+            hitSlop={12}
+            style={styles.headerButton}
+            accessibilityLabel="Hata ayıklama"
+            accessibilityRole="button"
+          >
+            <Text style={styles.headerDebugText}>[Hata Ayık.]</Text>
           </Pressable>
         </View>
       )
@@ -43,8 +55,8 @@ export default function HomeScreen({ navigation }: Props) {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>NamazGostergem</Text>
-      <Text style={styles.subtitle}>Namaz seç</Text>
+      <Text style={styles.title}>NamazGöstergem</Text>
+      <Text style={styles.subtitle}>Namazı seç ve başla</Text>
 
       <View style={styles.grid}>
         {prayers.map((prayer) => (
@@ -52,6 +64,9 @@ export default function HomeScreen({ navigation }: Props) {
             key={prayer.id}
             onPress={() => onPrayerPress(prayer.id)}
             style={styles.card}
+            accessibilityLabel={`${prayer.name}, ${prayer.defaultRakats} rekat`}
+            accessibilityRole="button"
+            accessibilityHint="Bu namazı seçip oturum ayarlarına gider"
           >
             <Text style={styles.cardTitle}>{prayer.name}</Text>
             <Text style={styles.cardMeta}>{prayer.defaultRakats} Rekat</Text>
@@ -68,6 +83,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontWeight: '700', color: '#ffffff', marginBottom: 4 },
   subtitle: { fontSize: 14, color: '#a0a0a0', marginBottom: 20 },
   headerRight: { flexDirection: 'row', gap: 12, marginRight: 12 },
+  headerButton: { minWidth: 44, minHeight: 44, justifyContent: 'center', alignItems: 'center' },
   headerSettingsText: { color: '#4CAF50', fontSize: 14 },
   headerDebugText: { color: '#888', fontSize: 12 },
   grid: {

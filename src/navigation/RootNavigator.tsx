@@ -20,7 +20,7 @@ export default function RootNavigator() {
       <Stack.Screen
         name="Home"
         component={HomeScreen}
-        options={{ title: 'NamazGostergem' }}
+        options={{ title: 'Ana Sayfa' }}
       />
       <Stack.Screen
         name="SessionSetup"
@@ -45,8 +45,16 @@ export default function RootNavigator() {
         component={CalibrationScreen}
         options={{ title: 'Kalibrasyon' }}
       />
-      <Stack.Screen name="Replay" component={ReplayScreen} options={{ title: 'Replay' }} />
-      <Stack.Screen name="Debug" component={DebugScreen} options={{ title: 'Debug' }} />
+      <Stack.Screen
+        name="Replay"
+        component={ReplayScreen}
+        options={{ title: 'Tekrar / Simülasyon' }}
+      />
+      <Stack.Screen
+        name="Debug"
+        component={DebugScreen}
+        options={{ title: 'Hata Ayıklama' }}
+      />
     </Stack.Navigator>
   );
 }

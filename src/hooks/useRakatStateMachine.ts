@@ -18,12 +18,13 @@ export function useRakatStateMachine(enabled: boolean): {
   lastVibrationReason: string | null;
   lastSample: AccelerometerSample | null;
   lastPitch: number | null;
+  sensorError: string | null;
   resetFsm: () => void;
 } {
   const debug = usePrayerStore((state) => state.debug);
   const thresholds = usePrayerStore((state) => state.thresholds);
 
-  const sample = useAccelerometer(enabled, debug);
+  const { sample, error: sensorError } = useAccelerometer(enabled, debug);
 
   const [currentFsmState, setCurrentFsmState] = useState<RakatState>(RakatState.STANDING);
   const [debugLogs, setDebugLogs] = useState<string[]>([]);
@@ -98,6 +99,7 @@ export function useRakatStateMachine(enabled: boolean): {
     lastVibrationReason,
     lastSample: sample,
     lastPitch,
+    sensorError,
     resetFsm
   };
 }
