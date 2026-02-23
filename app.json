@@ -1,4 +1,4 @@
-﻿{
+{
   "expo": {
     "name": "NamazGostergem",
     "slug": "NamazGostergem",
@@ -8,16 +8,12 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSMotionUsageDescription": "NamazGostergem uses motion sensors during prayer sessions to detect prayer movement and guide the user with haptic feedback."
+        "NSMotionUsageDescription": "Namaz rekatlarını algılamak için hareket sensörü kullanılır."
       }
     },
     "android": {
       "package": "com.example.namazgostergem",
-      "permissions": [
-        "VIBRATE",
-        "ACCESS_NOTIFICATION_POLICY",
-        "WRITE_SETTINGS"
-      ]
+      "permissions": ["VIBRATE", "WAKE_LOCK", "ACCESS_NOTIFICATION_POLICY", "WRITE_SETTINGS"]
     }
   }
 }

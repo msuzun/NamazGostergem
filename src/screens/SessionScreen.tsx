@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View, Pressable, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { usePrayerStore } from '../store/usePrayerStore';
@@ -19,7 +19,7 @@ export default function SessionScreen({ navigation }: Props) {
   const currentRakatIndex = usePrayerStore((state) => state.currentRakatIndex);
   const endSession = usePrayerStore((state) => state.endSession);
 
-  const { currentFsmState, debugLogs, lastSample, lastPitch } = useRakatStateMachine(
+  const { currentFsmState, debugLogs, lastVibrationReason, lastSample, lastPitch } = useRakatStateMachine(
     sessionStatus === SessionStatus.RUNNING
   );
 
@@ -45,6 +45,11 @@ export default function SessionScreen({ navigation }: Props) {
             <Text style={styles.debugText}>
               X: {lastSample.x.toFixed(2)}  Y: {lastSample.y.toFixed(2)}  Z: {lastSample.z.toFixed(2)}
             </Text>
+          )}
+          {lastVibrationReason != null && (
+            <View style={styles.vibrationIndicator}>
+              <Text style={styles.vibrationText}>📳 {lastVibrationReason}</Text>
+            </View>
           )}
           <View style={styles.debugDivider} />
           {lastLogs.map((line, i) => (
@@ -113,6 +118,18 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontVariant: ['tabular-nums'],
     marginBottom: 2
+  },
+  vibrationIndicator: {
+    marginTop: 6,
+    backgroundColor: 'rgba(255, 100, 0, 0.7)',
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 3
+  },
+  vibrationText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: 'bold'
   },
   centerBlock: {
     alignItems: 'center'

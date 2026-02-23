@@ -4,6 +4,7 @@ import { usePrayerStore } from '../store/usePrayerStore';
 import { PrayerType } from '../types';
 import { getDefaultConfig } from '../utils/patternGenerator';
 import { useAccelerometer } from '../hooks/useAccelerometer';
+import { triggerPatternVibration } from '../services/vibrationService';
 
 const PRAYER_ORDER: PrayerType[] = [
   PrayerType.SABAH,
@@ -54,6 +55,10 @@ export default function DebugScreen() {
           );
         })}
       </View>
+
+      <Pressable onPress={() => triggerPatternVibration()} style={styles.testButton}>
+        <Text style={styles.testButtonText}>📳 Test Titreşim (pattern=0)</Text>
+      </Pressable>
 
       <Text style={styles.sectionTitle}>Session Actions</Text>
       <View style={styles.buttonWrap}>
@@ -121,6 +126,18 @@ const styles = StyleSheet.create({
   sensorText: {
     color: '#0ff',
     fontFamily: 'monospace',
+    fontSize: 13
+  },
+  testButton: {
+    backgroundColor: 'rgba(255, 100, 0, 0.9)',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    alignSelf: 'flex-start'
+  },
+  testButtonText: {
+    color: '#fff',
+    fontWeight: '700',
     fontSize: 13
   },
   buttonWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
