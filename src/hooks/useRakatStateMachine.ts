@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import type { AccelerometerSample } from '../services/sensorService';
 import { extractFeatures } from '../algorithms/features';
 import { createRakatStateMachine, RakatState, type RakatEvent } from '../algorithms/rakatStateMachine';
@@ -18,6 +18,7 @@ export function useRakatStateMachine(enabled: boolean): {
   lastVibrationReason: string | null;
   lastSample: AccelerometerSample | null;
   lastPitch: number | null;
+  resetFsm: () => void;
 } {
   const debug = usePrayerStore((state) => state.debug);
 
@@ -85,11 +86,16 @@ export function useRakatStateMachine(enabled: boolean): {
     setLastPitch(features.pitch);
   }, [enabled, sample]);
 
+  const resetFsm = useCallback(() => {
+    machineRef.current?.reset();
+  }, []);
+
   return {
     currentFsmState,
     debugLogs,
     lastVibrationReason,
     lastSample: sample,
-    lastPitch
+    lastPitch,
+    resetFsm
   };
 }

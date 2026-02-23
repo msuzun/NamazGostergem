@@ -1,12 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { StyleSheet, Text, View, Pressable, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import * as Brightness from 'expo-brightness';
+import { activateKeepAwakeAsync } from 'expo-keep-awake';
 import { usePrayerStore } from '../store/usePrayerStore';
 import { SessionStatus } from '../types';
 import { useRakatStateMachine } from '../hooks/useRakatStateMachine';
-import { ensureDndForSessionStart, restoreDndAfterSession } from '../services/dndService';
+import { useSessionTeardown } from '../hooks/useSessionTeardown';
+import { useAppStateSession } from '../hooks/useAppStateSession';
+import { ensureDndForSessionStart } from '../services/dndService';
 import { openAndroidDndSettings, openIosSettings } from '../native/systemSettings';
+import ExitButton from '../components/ExitButton';
 import type { RootStackParamList } from '../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Session'>;
@@ -16,45 +21,100 @@ export default function SessionScreen({ navigation }: Props) {
 
   const [showDndModal, setShowDndModal] = useState(false);
   const [dndExplained, setDndExplained] = useState(false);
+  const [backgroundWarning, setBackgroundWarning] = useState(false);
+
+  const prevBrightness = useRef(1.0);
 
   const prayerConfig = usePrayerStore((state) => state.prayerConfig);
   const rakats = usePrayerStore((state) => state.rakats);
   const debug = usePrayerStore((state) => state.debug);
   const sessionStatus = usePrayerStore((state) => state.sessionStatus);
   const currentRakatIndex = usePrayerStore((state) => state.currentRakatIndex);
-  const endSession = usePrayerStore((state) => state.endSession);
+  const pauseSession = usePrayerStore((state) => state.pauseSession);
+  const resumeSession = usePrayerStore((state) => state.resumeSession);
 
-  const { currentFsmState, debugLogs, lastVibrationReason, lastSample, lastPitch } = useRakatStateMachine(
-    sessionStatus === SessionStatus.RUNNING
-  );
+  const {
+    currentFsmState,
+    debugLogs,
+    lastVibrationReason,
+    lastSample,
+    lastPitch,
+    resetFsm
+  } = useRakatStateMachine(sessionStatus === SessionStatus.RUNNING);
 
+  const { teardown } = useSessionTeardown({
+    prevBrightness,
+    fsmReset: resetFsm
+  });
+
+  const handleBackground = useCallback(() => {
+    if (sessionStatus === SessionStatus.RUNNING) {
+      pauseSession();
+      setBackgroundWarning(true);
+    }
+  }, [sessionStatus, pauseSession]);
+
+  const handleForeground = useCallback(() => {
+    // Do NOT auto-resume — require explicit user action.
+    // Warning banner stays visible until user taps "Devam Et".
+  }, []);
+
+  useAppStateSession({
+    onBackground: handleBackground,
+    onForeground: handleForeground
+  });
+
+  // Prevents Android hardware back button and iOS swipe-back from exiting
+  // session without proper teardown. User must use the long-press ExitButton to exit.
   useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      if (sessionStatus !== SessionStatus.RUNNING) return;
+      e.preventDefault();
+    });
+    return unsubscribe;
+  }, [navigation, sessionStatus]);
+
+  // teardown() is idempotent — safe to call from both:
+  // 1. The cleanup of this useEffect (unmount safety net)
+  // 2. The explicit exit button / warning overlay "Oturumu Bitir" button
+  // The torn ref inside useSessionTeardown prevents double execution.
+  useEffect(() => {
+    const status = usePrayerStore.getState().sessionStatus;
+    if (status !== SessionStatus.RUNNING) {
+      navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
+      return;
+    }
+
     let isMounted = true;
 
     async function setup() {
-      const result = await ensureDndForSessionStart();
-      if (isMounted && result.requiresUserAction && !dndExplained) {
-        setShowDndModal(true);
+      await activateKeepAwakeAsync();
+
+      try {
+        const current = await Brightness.getBrightnessAsync();
+        prevBrightness.current = current;
+        await Brightness.setBrightnessAsync(0.01);
+      } catch {
+        // iOS may restrict brightness control — black overlay handles dimming
+      }
+
+      if (isMounted) {
+        const dnd = await ensureDndForSessionStart();
+        if (dnd.requiresUserAction && !dndExplained) {
+          setShowDndModal(true);
+        }
       }
     }
 
-    if (sessionStatus === SessionStatus.RUNNING) {
-      setup();
-    }
+    setup();
 
     return () => {
       isMounted = false;
-      restoreDndAfterSession();
+      teardown();
     };
-  }, [sessionStatus, dndExplained]);
+  }, []);
 
   const prayerName = prayerConfig?.name ?? 'Namaz';
-
-  const onFinish = () => {
-    endSession();
-    navigation.navigate('Home');
-  };
-
   const lastLogs = debugLogs.slice(-5);
 
   return (
@@ -94,9 +154,45 @@ export default function SessionScreen({ navigation }: Props) {
         <Text style={styles.infoDim}>Durum: {sessionStatus}</Text>
       </View>
 
-      <Pressable style={[styles.finishButton, { bottom: insets.bottom + 24 }]} onPress={onFinish}>
-        <Text style={styles.finishButtonText}>Bitir</Text>
-      </Pressable>
+      <View style={[styles.exitButtonWrap, { bottom: insets.bottom + 24 }]}>
+        <ExitButton
+          onExit={async () => {
+            await teardown();
+            navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
+          }}
+          style={styles.finishButton}
+          textStyle={styles.finishButtonText}
+        />
+      </View>
+
+      {backgroundWarning && (
+        <View style={styles.warningOverlay}>
+          <Text style={styles.warningIcon}>⚠️</Text>
+          <Text style={styles.warningTitle}>Oturum Duraklatıldı</Text>
+          <Text style={styles.warningText}>
+            Uygulama arka plana alındığı için oturum otomatik duraklatıldı.
+          </Text>
+          <Pressable
+            style={styles.warningResumeButton}
+            onPress={() => {
+              setBackgroundWarning(false);
+              resumeSession();
+            }}
+          >
+            <Text style={styles.warningResumeText}>▶ Devam Et</Text>
+          </Pressable>
+          <Pressable
+            style={styles.warningEndButton}
+            onPress={async () => {
+              setBackgroundWarning(false);
+              await teardown();
+              navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
+            }}
+          >
+            <Text style={styles.warningEndText}>Oturumu Bitir</Text>
+          </Pressable>
+        </View>
+      )}
 
       {showDndModal && (
         <View style={styles.dndModalOverlay}>
@@ -214,15 +310,69 @@ const styles = StyleSheet.create({
   title: { color: '#ffffff', fontSize: 24, fontWeight: '700', marginBottom: 12 },
   info: { color: '#cbd5e1', fontSize: 16, marginBottom: 4 },
   infoDim: { color: '#64748b', fontSize: 14, marginBottom: 4 },
-  finishButton: {
+  exitButtonWrap: {
     position: 'absolute',
-    bottom: 48,
-    backgroundColor: '#2a2a2a',
-    paddingVertical: 14,
-    paddingHorizontal: 32,
-    borderRadius: 12
+    bottom: 48
+  },
+  finishButton: {
+    backgroundColor: '#2a2a2a'
   },
   finishButtonText: { color: '#ffffff', fontWeight: '700', fontSize: 16 },
+  warningOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    zIndex: 100
+  },
+  warningIcon: {
+    fontSize: 48,
+    marginBottom: 16
+  },
+  warningTitle: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    textAlign: 'center'
+  },
+  warningText: {
+    color: '#aaa',
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 32
+  },
+  warningResumeButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 14,
+    paddingHorizontal: 40,
+    borderRadius: 10,
+    marginBottom: 12,
+    width: '100%',
+    alignItems: 'center'
+  },
+  warningResumeText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold'
+  },
+  warningEndButton: {
+    backgroundColor: '#333',
+    paddingVertical: 12,
+    paddingHorizontal: 40,
+    borderRadius: 10,
+    width: '100%',
+    alignItems: 'center'
+  },
+  warningEndText: {
+    color: '#aaa',
+    fontSize: 14
+  },
   dndModalOverlay: {
     position: 'absolute',
     top: 0,

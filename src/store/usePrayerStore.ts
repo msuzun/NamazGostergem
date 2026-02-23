@@ -110,6 +110,8 @@ export const usePrayerStore = create<PrayerStore>((set, get) => ({
     }
   },
 
+  // resetSession() only resets runtime state, not prayer configuration.
+  // This allows the user to restart the same prayer without re-selecting.
   resetSession: () =>
     set({
       sessionStatus: SessionStatus.IDLE,
